@@ -1,4 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Send,
+  X,
+  Sparkles,
+  Bot,
+  User,
+  RotateCcw,
+  Navigation,
+} from "lucide-react";
 import intents from "../data/intents.json";
 import { api } from "../api";
 import type { Landmark, Poi, PoiType, RouteResult } from "../types";
@@ -9,6 +19,7 @@ interface ChatMessage {
   from: "user" | "bot";
   text: string;
   action?: { label: string; run: () => void };
+  timestamp: string;
 }
 
 interface Props {
@@ -50,11 +61,36 @@ function extractDestination(text: string, landmarks: Landmark[]): Landmark | nul
 }
 
 const WELCOME =
-  "Namaste 🙏 Main Bhramastra Copilot hoon. Try: \"Where am I\", \"Distance to Mahakal\", \"Nearest parking\", or \"Less crowded route to Ram Ghat\".";
+  "Namaste! 🙏 I am your **Bhramastra AI Pilgrim Copilot**. How may I guide your Simhasth journey today? Ask me about crowd rush, shortest routes, free bhandara, or nearest parking!";
 
-export default function Chatbot({ userLocation, requestLocation, landmarks, hour, onRoute, onClose }: Props) {
+const SUGGESTIONS = [
+  { label: "📍 Where am I?", query: "Where am I right now?" },
+  { label: "🛕 Route to Mahakal", query: "Less crowded route to Mahakaleshwar Temple" },
+  { label: "🅿️ Nearest Parking", query: "Where is the nearest parking?" },
+  { label: "🍲 Free Food / Bhandara", query: "Find nearest food bhandara" },
+  { label: "⏰ Best time to avoid rush", query: "Best time to visit temple today" },
+  { label: "🚑 Medical Emergency", query: "Nearest medical first aid" },
+];
+
+function getCurrentTimeString() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export default function Chatbot({
+  userLocation,
+  requestLocation,
+  landmarks,
+  hour,
+  onRoute,
+  onClose,
+}: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 0, from: "bot", text: WELCOME },
+    {
+      id: 0,
+      from: "bot",
+      text: WELCOME,
+      timestamp: getCurrentTimeString(),
+    },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,26 +99,29 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, busy]);
 
   const addBotMessage = (text: string, action?: ChatMessage["action"]) => {
-    setMessages((prev) => [...prev, { id: idRef.current++, from: "bot", text, action }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: idRef.current++, from: "bot", text, action, timestamp: getCurrentTimeString() },
+    ]);
   };
 
   const handlePoiIntent = async (type: PoiType) => {
     if (!userLocation) {
-      addBotMessage("I need your location first — please allow location access, then try again.");
+      addBotMessage("I need your GPS location first. Please allow location access, then ask again.");
       requestLocation();
       return;
     }
     try {
       const poi: Poi = await api.nearestPoi(type, userLocation.lat, userLocation.lng);
       addBotMessage(
-        `Nearest ${type}: ${poi.name} — ${formatDistance(poi.distanceM || 0)} away (${formatEta(
-          poi.etaMinutes || 0
-        )} walk).`,
+        `Nearest **${type.toUpperCase()}**: **${poi.name}**\n\n📍 Distance: ${formatDistance(
+          poi.distanceM || 0
+        )} (${formatEta(poi.etaMinutes || 0)} walking)`,
         {
-          label: "Navigate there",
+          label: `Navigate to ${poi.name}`,
           run: async () => {
             const route = await api.route(userLocation.lat, userLocation.lng, poi.id, "fastest", hour);
             onRoute(route);
@@ -90,27 +129,31 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
         }
       );
     } catch {
-      addBotMessage(`Sorry, couldn't find a nearby ${type} right now.`);
+      addBotMessage(`Sorry, could not locate a nearby ${type} in the Simhasth zone right now.`);
     }
   };
 
   const handleSend = async (raw: string) => {
     const text = raw.trim();
     if (!text) return;
-    setMessages((prev) => [...prev, { id: idRef.current++, from: "user", text }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: idRef.current++, from: "user", text, timestamp: getCurrentTimeString() },
+    ]);
     setInput("");
     setBusy(true);
+
     try {
       const intent = classifyIntent(text);
 
       if (intent === "whereAmI") {
         if (!userLocation) {
-          addBotMessage("Fetching your location...");
+          addBotMessage("Fetching your current GPS location...");
           requestLocation();
           return;
         }
         const geo = await api.reverseGeocode(userLocation.lat, userLocation.lng);
-        addBotMessage(`You're near: ${geo.displayName}`);
+        addBotMessage(`You are currently located near **${geo.displayName}** in Ujjain.`);
         return;
       }
 
@@ -121,7 +164,7 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
 
       if (intent === "distance" || intent === "lessCrowdedRoute") {
         if (!userLocation) {
-          addBotMessage("I need your location first — please allow location access, then try again.");
+          addBotMessage("Please allow location access so I can calculate the route from your exact spot.");
           requestLocation();
           return;
         }
@@ -130,16 +173,18 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
           const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "crowd", hour);
           onRoute(route);
           addBotMessage(
-            `Least-crowded route to ${destination.name} plotted: ${formatDistance(route.distanceM)}, ~${formatEta(
-              route.etaMinutes
-            )}.`
+            `Plotted a **safe, less-crowded route** to **${destination.name}**.\n\n🚶 Distance: ${formatDistance(
+              route.distanceM
+            )} | ETA: ~${formatEta(route.etaMinutes)}.`
           );
         } else {
           const d = await api.distanceTo(userLocation.lat, userLocation.lng, destination.id);
           addBotMessage(
-            `${destination.name} is ${formatDistance(d.distanceM)} away, about ${formatEta(d.etaMinutes)} on foot.`,
+            `**${destination.name}** is **${formatDistance(d.distanceM)}** away (approx. **${formatEta(
+              d.etaMinutes
+            )}** on foot).`,
             {
-              label: "Show route",
+              label: `Show Route to ${destination.name}`,
               run: async () => {
                 const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "fastest", hour);
                 onRoute(route);
@@ -157,7 +202,9 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
           .sort((a, b) => a.hour - b.hour)
           .map((b) => `${b.hour % 12 === 0 ? 12 : b.hour % 12}${b.hour >= 12 ? "PM" : "AM"}`)
           .join(", ");
-        addBotMessage(`Least crowded hours today: ${best}. Try to avoid the 6-8 PM aarti rush if possible.`);
+        addBotMessage(
+          `Least crowded hours for Darshan today are: **${best}**.\n\n⚠️ Tip: Avoid the 6:00 PM – 8:30 PM Sandhya Aarti surge if you prefer shorter queues.`
+        );
         return;
       }
 
@@ -167,67 +214,177 @@ export default function Chatbot({ userLocation, requestLocation, landmarks, hour
       }
 
       addBotMessage(
-        "Sorry, I didn't get that. Try: \"Where am I\", \"Nearest medical\", or \"Less crowded route to Mahakal\"."
+        "I didn't quite catch that. Try asking:\n- *\"Where am I?\"*\n- *\"Nearest medical first aid\"*\n- *\"Safe route to Mahakal\"*\n- *\"Find parking\"*"
       );
+    } catch {
+      addBotMessage("An error occurred while connecting to the guide service. Please try again.");
     } finally {
       setBusy(false);
     }
   };
 
+  const handleClear = () => {
+    setMessages([
+      {
+        id: 0,
+        from: "bot",
+        text: WELCOME,
+        timestamp: getCurrentTimeString(),
+      },
+    ]);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-saffron-500 text-white">
-        <div>
-          <p className="font-semibold text-sm leading-none">Bhramastra Copilot</p>
-          <p className="text-[11px] opacity-90">AI Pilgrim Assistant</p>
-        </div>
-        <button onClick={onClose} className="text-white text-xl leading-none">
-          &times;
-        </button>
-      </div>
-
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-orange-50/40">
-        {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                m.from === "user" ? "bg-blue-600 text-white rounded-br-sm" : "bg-white text-gray-800 rounded-bl-sm"
-              }`}
-            >
-              <p>{m.text}</p>
-              {m.action && (
-                <button
-                  onClick={m.action.run}
-                  className="mt-1.5 text-xs font-semibold text-saffron-600 underline"
-                >
-                  {m.action.label}
-                </button>
-              )}
-            </div>
+    <div className="flex flex-col h-full bg-slate-50 border border-slate-200/90 sm:rounded-3xl overflow-hidden shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 text-white shadow-md">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+            <Sparkles className="w-4 h-4" />
           </div>
-        ))}
-        {busy && <p className="text-xs text-gray-400 px-1">Bhramastra is typing...</p>}
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-sm leading-none">Bhramastra Copilot</p>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <p className="text-[11px] text-amber-100 font-medium">AI Simhasth Pilgrim Assistant</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleClear}
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+            title="Reset Conversation"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose}
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors"
+            title="Close Copilot"
+          >
+            <X className="w-5 h-5" />
+          </motion.button>
+        </div>
       </div>
 
+      {/* Messages Feed */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gradient-to-b from-amber-50/40 via-white to-slate-50">
+        <AnimatePresence initial={false}>
+          {messages.map((m) => (
+            <motion.div
+              key={m.id}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className={`flex items-end gap-2 ${m.from === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {m.from === "bot" && (
+                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                  <Bot className="w-4 h-4" />
+                </div>
+              )}
+
+              <div
+                className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed shadow-sm ${
+                  m.from === "user"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-none font-medium"
+                    : "bg-white text-slate-800 border border-slate-200/80 rounded-bl-none"
+                }`}
+              >
+                <p className="whitespace-pre-line">{m.text}</p>
+
+                {m.action && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={m.action.run}
+                    className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-2 px-3 rounded-xl shadow-sm transition-all"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    {m.action.label}
+                  </motion.button>
+                )}
+
+                <span
+                  className={`block text-[9px] mt-1 text-right ${
+                    m.from === "user" ? "text-blue-100" : "text-slate-400"
+                  }`}
+                >
+                  {m.timestamp}
+                </span>
+              </div>
+
+              {m.from === "user" && (
+                <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center shrink-0 mb-1 shadow-sm">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {busy && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 text-xs text-slate-500"
+          >
+            <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="bg-white border border-slate-200/80 rounded-2xl px-3.5 py-2 flex items-center gap-1.5 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" />
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:0.2s]" />
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:0.4s]" />
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Suggestion Chips */}
+      <div className="p-2 bg-white/90 border-t border-slate-200/80 overflow-x-auto no-scrollbar flex gap-1.5">
+        {SUGGESTIONS.map((s, idx) => (
+          <motion.button
+            key={idx}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleSend(s.query)}
+            className="whitespace-nowrap text-[11px] font-semibold bg-slate-100 hover:bg-amber-50 hover:text-amber-700 text-slate-700 border border-slate-200/80 rounded-full px-3 py-1 transition-colors shrink-0 shadow-2xs"
+          >
+            {s.label}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Input Bar */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSend(input);
         }}
-        className="flex gap-2 p-2 border-t"
+        className="flex items-center gap-2 p-2.5 bg-white border-t border-slate-200/80"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type in Hindi or English..."
-          className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-400"
+          placeholder="Ask in Hindi or English (e.g. कम भीड़ वाला रास्ता)..."
+          className="flex-1 bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
         />
-        <button
+        <motion.button
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
           type="submit"
-          className="bg-saffron-500 hover:bg-saffron-600 text-white rounded-full w-10 h-10 flex items-center justify-center"
+          disabled={!input.trim() || busy}
+          className="bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 disabled:opacity-40 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-md transition-shadow shrink-0"
         >
-          ➤
-        </button>
+          <Send className="w-4 h-4" />
+        </motion.button>
       </form>
     </div>
   );
