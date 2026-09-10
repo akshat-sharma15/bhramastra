@@ -14,7 +14,10 @@ const BASE = "/api";
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `GET ${path} failed: ${res.status}`);
+  }
   return res.json();
 }
 
