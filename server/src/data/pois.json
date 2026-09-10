@@ -1,0 +1,17 @@
+[
+  { "id": "P1", "type": "parking", "name": "Parking Zone A - Bada Ganesh", "nameHi": "पार्किंग ज़ोन A", "lat": 23.1810, "lng": 75.7710, "capacity": 400, "nodeId": "N5" },
+  { "id": "P2", "type": "parking", "name": "Parking Zone B - Nagar Nigam Ground", "nameHi": "पार्किंग ज़ोन B", "lat": 23.1780, "lng": 75.7650, "capacity": 600, "nodeId": "N6" },
+  { "id": "P3", "type": "parking", "name": "Parking Zone C - Dewas Road Entry", "nameHi": "पार्किंग ज़ोन C", "lat": 23.1750, "lng": 75.7600, "capacity": 800, "nodeId": "N9" },
+  { "id": "F1", "type": "food", "name": "Chappan Dukan Food Court", "nameHi": "छप्पन दुकान", "lat": 23.1845, "lng": 75.7720, "nodeId": "N7" },
+  { "id": "F2", "type": "food", "name": "Annakshetra Bhandara - Ram Ghat", "nameHi": "अन्नक्षेत्र भंडारा", "lat": 23.1948, "lng": 75.7775, "nodeId": "N1" },
+  { "id": "F3", "type": "food", "name": "Prasad Counter - Mahakal Gate", "nameHi": "प्रसाद काउंटर", "lat": 23.1832, "lng": 75.7688, "nodeId": "N4" },
+  { "id": "M1", "type": "medical", "name": "Medical Camp - Mahakal Gate", "nameHi": "मेडिकल कैंप", "lat": 23.1835, "lng": 75.7690, "nodeId": "N4" },
+  { "id": "M2", "type": "medical", "name": "Medical Camp - Ram Ghat", "nameHi": "मेडिकल कैंप - राम घाट", "lat": 23.1950, "lng": 75.7760, "nodeId": "N1" },
+  { "id": "M3", "type": "medical", "name": "Medical Camp - Parking Zone B", "nameHi": "मेडिकल कैंप - पार्किंग B", "lat": 23.1782, "lng": 75.7655, "nodeId": "N6" },
+  { "id": "T1", "type": "toilet", "name": "Public Toilet - Ghat Road", "nameHi": "शौचालय - घाट रोड", "lat": 23.1895, "lng": 75.7735, "nodeId": "N2" },
+  { "id": "T2", "type": "toilet", "name": "Public Toilet - Parking A", "nameHi": "शौचालय - पार्किंग A", "lat": 23.1808, "lng": 75.7705, "nodeId": "N5" },
+  { "id": "T3", "type": "toilet", "name": "Public Toilet - Ram Ghat", "nameHi": "शौचालय - राम घाट", "lat": 23.1958, "lng": 75.7772, "nodeId": "N1" },
+  { "id": "A1", "type": "auto", "name": "Auto-Rickshaw Stand - Ram Ghat", "nameHi": "ऑटो स्टैंड - राम घाट", "lat": 23.1952, "lng": 75.7765, "nodeId": "N1" },
+  { "id": "A2", "type": "auto", "name": "Auto-Rickshaw Stand - Dewas Road", "nameHi": "ऑटो स्टैंड - देवास रोड", "lat": 23.1752, "lng": 75.7605, "nodeId": "N9" },
+  { "id": "A3", "type": "auto", "name": "Auto-Rickshaw Stand - Sandipani Rd", "nameHi": "ऑटो स्टैंड - सांदीपनि रोड", "lat": 23.1927, "lng": 75.7898, "nodeId": "N10" }
+]

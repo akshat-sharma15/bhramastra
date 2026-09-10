@@ -1,0 +1,23 @@
+{
+  "whereAmI": {
+    "keywords": ["where am i", "my location", "current location", "mai kaha", "main kaha", "kaha hoon", "kahan hoon", "मैं कहाँ", "मेरी लोकेशन", "location kya hai"]
+  },
+  "lessCrowdedRoute": {
+    "keywords": ["less crowded", "least crowded", "kam bheed", "kam bhid", "कम भीड़", "avoid crowd", "safe route", "bhीड़ se bacha", "bheed se bacha"]
+  },
+  "distance": {
+    "keywords": ["distance", "how far", "kitni door", "kitna dur", "kitni dur", "दूरी", "kitna time", "how long", "route to", "reach"]
+  },
+  "nearestParking": { "keywords": ["parking", "पार्किंग", "car park", "gaadi kaha", "vehicle park"] },
+  "nearestFood": { "keywords": ["food", "khana", "भोजन", "bhandara", "भंडारा", "eat", "prasad", "प्रसाद"] },
+  "nearestMedical": {
+    "keywords": ["medical", "doctor", "hospital", "chikitsa", "चिकित्सा", "इलाज", "first aid", "ambulance", "dawai"]
+  },
+  "nearestToilet": { "keywords": ["toilet", "washroom", "शौचालय", "restroom", "shauchalay"] },
+  "nearestAuto": { "keywords": ["auto", "rickshaw", "ऑटो", "taxi", "cab"] },
+  "bestTime": {
+    "keywords": ["best time", "sahi samay", "सही समय", "kab jau", "kab jaayen", "कब जाऊं", "when should i go", "kab bhid kam"]
+  },
+  "greeting": { "keywords": ["hi", "hello", "namaste", "नमस्ते", "hey", "jai mahakal", "जय महाकाल"] },
+  "help": { "keywords": ["help", "क्या कर सकते", "what can you do", "commands"] }
+}

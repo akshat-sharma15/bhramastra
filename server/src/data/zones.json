@@ -1,0 +1,11 @@
+[
+  { "id": "Z1", "name": "Ram Ghat Approach", "nameHi": "राम घाट मार्ग", "lat": 23.1928, "lng": 75.7754, "radiusM": 220, "type": "ghat" },
+  { "id": "Z2", "name": "Ghat Road", "nameHi": "घाट रोड", "lat": 23.1879, "lng": 75.7720, "radiusM": 200, "type": "temple-approach" },
+  { "id": "Z3", "name": "Mahakal Approach", "nameHi": "महाकाल मार्ग", "lat": 23.1843, "lng": 75.7691, "radiusM": 250, "type": "temple-approach" },
+  { "id": "Z5", "name": "Parking Access Road", "nameHi": "पार्किंग मार्ग", "lat": 23.1819, "lng": 75.7697, "radiusM": 180, "type": "parking-road" },
+  { "id": "Z6", "name": "Parking Zone B Road", "nameHi": "पार्किंग B मार्ग", "lat": 23.1795, "lng": 75.7680, "radiusM": 180, "type": "parking-road" },
+  { "id": "Z7", "name": "Entry Road (Dewas Rd)", "nameHi": "प्रवेश मार्ग", "lat": 23.1765, "lng": 75.7625, "radiusM": 300, "type": "entry-road" },
+  { "id": "Z8", "name": "Sandipani Road", "nameHi": "सांदीपनि मार्ग", "lat": 23.1942, "lng": 75.7835, "radiusM": 250, "type": "entry-road" },
+  { "id": "Z9", "name": "Kal Bhairav Road", "nameHi": "काल भैरव मार्ग", "lat": 23.1985, "lng": 75.7805, "radiusM": 250, "type": "entry-road" },
+  { "id": "Z11", "name": "Chappan Dukan Bypass", "nameHi": "छप्पन दुकान बायपास", "lat": 23.1872, "lng": 75.7730, "radiusM": 180, "type": "food-street" }
+]

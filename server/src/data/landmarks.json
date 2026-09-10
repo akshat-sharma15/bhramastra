@@ -1,0 +1,7 @@
+[
+  { "id": "mahakal", "name": "Mahakaleshwar Temple", "nameHi": "महाकालेश्वर मंदिर", "lat": 23.1828, "lng": 75.7683, "nodeId": "N4" },
+  { "id": "ramghat", "name": "Ram Ghat", "nameHi": "राम घाट", "lat": 23.1955, "lng": 75.7768, "nodeId": "N1" },
+  { "id": "harsiddhi", "name": "Harsiddhi Temple", "nameHi": "हरसिद्धि मंदिर", "lat": 23.1857, "lng": 75.7699, "nodeId": "N3" },
+  { "id": "kalbhairav", "name": "Kal Bhairav Temple", "nameHi": "काल भैरव मंदिर", "lat": 23.2013, "lng": 75.7846, "nodeId": "N8" },
+  { "id": "sandipani", "name": "Sandipani Ashram", "nameHi": "सांदीपनि आश्रम", "lat": 23.1929, "lng": 75.7902, "nodeId": "N10" }
+]
