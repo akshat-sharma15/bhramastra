@@ -1,8 +1,10 @@
 const express = require("express");
 const landmarks = require("../data/landmarks.json");
 const pois = require("../data/pois.json");
+const zones = require("../data/zones.json");
 const { haversineMeters, etaMinutes } = require("../utils/distance");
-const { nearestNode, shortestPath, nodesById } = require("../utils/routing");
+const { occupancyForZone } = require("../utils/crowdModel");
+const { fetchOsrmRoute, fetchOsrmAlternatives } = require("../utils/osrm");
 
 const router = express.Router();
 
@@ -13,25 +15,34 @@ function findLandmark(destinationId) {
   if (landmark) return landmark;
   const poi = pois.find((p) => p.id === destinationId);
   if (poi) {
-    return { id: poi.id, name: poi.name, nameHi: poi.nameHi, lat: poi.lat, lng: poi.lng, nodeId: poi.nodeId };
+    return { id: poi.id, name: poi.name, nameHi: poi.nameHi, lat: poi.lat, lng: poi.lng };
   }
   return null;
 }
 
-function pathToLatLngs(userLat, userLng, pathResult) {
-  return [{ lat: userLat, lng: userLng, label: "You" }, ...pathResult.nodes.map((n) => ({
-    lat: n.lat,
-    lng: n.lng,
-    label: n.label,
-  }))];
+// Rough crowd-exposure heuristic: which live crowd zones does this street
+// route actually pass near, and how busy are they right now.
+function crowdExposure(coordinates, hour) {
+  let score = 0;
+  const zoneIds = [];
+  for (const z of zones) {
+    const passesNear = coordinates.some(
+      (c) => haversineMeters(c.lat, c.lng, z.lat, z.lng) <= z.radiusM + 60
+    );
+    if (passesNear) {
+      score += occupancyForZone(z, hour);
+      zoneIds.push(z.id);
+    }
+  }
+  return { score, zoneIds };
 }
 
-function buildTurns(pathResult) {
-  return pathResult.nodes.map((n, i) => {
-    if (i === 0) return `Start: head towards ${n.label}`;
-    if (i === pathResult.nodes.length - 1) return `Arrive at ${n.label}`;
-    return `Continue via ${n.label}`;
-  });
+function labelEndpoints(coordinates, destinationName) {
+  if (!coordinates.length) return coordinates;
+  const path = coordinates.slice();
+  path[0] = { ...path[0], label: "You" };
+  path[path.length - 1] = { ...path[path.length - 1], label: destinationName };
+  return path;
 }
 
 router.get("/distance", (req, res) => {
@@ -44,7 +55,7 @@ router.get("/distance", (req, res) => {
   res.json({ destination: landmark, distanceM, etaMinutes: etaMinutes(distanceM) });
 });
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   const { fromLat, fromLng, destinationId, priority = "fastest", hour } = req.query;
   const lat = Number(fromLat);
   const lng = Number(fromLng);
@@ -55,54 +66,89 @@ router.get("/", (req, res) => {
   if (!landmark) return res.status(404).json({ error: "unknown destination" });
 
   const h = hour != null ? Number(hour) : new Date().getHours();
-  const startNode = nearestNode(lat, lng);
-  const destNodeId = landmark.nodeId;
 
-  const buildResponse = (legsPathResults, label) => {
-    const allNodes = [{ lat, lng, label: "You" }];
-    let totalDistanceM = 0;
-    const zonesUsedSet = new Set();
-    const turns = [];
-    legsPathResults.forEach((pr) => {
-      pr.nodes.forEach((n) => allNodes.push({ lat: n.lat, lng: n.lng, label: n.label }));
-      totalDistanceM += pr.totalDistanceM;
-      pr.zonesUsed.forEach((z) => zonesUsedSet.add(z));
-      turns.push(...buildTurns(pr));
-    });
-    totalDistanceM += startNode.distanceM;
-    return {
-      destination: landmark,
-      priority: label,
-      hour: h,
-      distanceM: Math.round(totalDistanceM),
-      etaMinutes: etaMinutes(totalDistanceM),
-      path: allNodes,
-      turns,
-      zonesUsed: [...zonesUsedSet],
-    };
-  };
+  try {
+    if (priority === "parking") {
+      const parkingPois = pois.filter((p) => p.type === "parking");
+      if (!parkingPois.length) return res.status(404).json({ error: "no parking found" });
 
-  if (priority === "parking") {
-    const parkingPois = pois.filter((p) => p.type === "parking");
-    let best = null;
-    for (const p of parkingPois) {
-      const leg1 = shortestPath(startNode.node.id, p.nodeId, "fastest", h);
-      const leg2 = shortestPath(p.nodeId, destNodeId, "fastest", h);
-      if (!leg1 || !leg2) continue;
-      const total = leg1.totalDistanceM + leg2.totalDistanceM;
-      if (!best || total < best.total) {
-        best = { total, leg1, leg2, parking: p };
+      let bestParking = null;
+      let bestDist = Infinity;
+      for (const p of parkingPois) {
+        const d = haversineMeters(lat, lng, p.lat, p.lng);
+        if (d < bestDist) {
+          bestDist = d;
+          bestParking = p;
+        }
       }
-    }
-    if (!best) return res.status(404).json({ error: "no route found via parking" });
-    const response = buildResponse([best.leg1, best.leg2], "parking");
-    response.parking = best.parking;
-    return res.json(response);
-  }
 
-  const p = shortestPath(startNode.node.id, destNodeId, priority === "crowd" ? "crowd" : "fastest", h);
-  if (!p) return res.status(404).json({ error: "no route found" });
-  res.json(buildResponse([p], priority));
+      const [leg1, leg2] = await Promise.all([
+        fetchOsrmRoute(lat, lng, bestParking.lat, bestParking.lng),
+        fetchOsrmRoute(bestParking.lat, bestParking.lng, landmark.lat, landmark.lng),
+      ]);
+      if (!leg1 || !leg2) return res.status(502).json({ error: "Routing service is unavailable right now." });
+
+      const coordinates = [...leg1.coordinates, ...leg2.coordinates];
+      const distanceM = leg1.distanceM + leg2.distanceM;
+      const turns = [...leg1.turns, `Park at ${bestParking.name}`, ...leg2.turns];
+      const { zoneIds } = crowdExposure(coordinates, h);
+
+      return res.json({
+        destination: landmark,
+        priority: "parking",
+        hour: h,
+        distanceM: Math.round(distanceM),
+        etaMinutes: etaMinutes(distanceM),
+        path: labelEndpoints(coordinates, landmark.name),
+        turns,
+        zonesUsed: zoneIds,
+        parking: bestParking,
+      });
+    }
+
+    if (priority === "crowd") {
+      const alternatives = await fetchOsrmAlternatives(lat, lng, landmark.lat, landmark.lng);
+      if (!alternatives) return res.status(502).json({ error: "Routing service is unavailable right now." });
+
+      let best = null;
+      let bestScore = Infinity;
+      for (const candidate of alternatives) {
+        const { score, zoneIds } = crowdExposure(candidate.coordinates, h);
+        if (score < bestScore) {
+          bestScore = score;
+          best = { ...candidate, zoneIds };
+        }
+      }
+
+      return res.json({
+        destination: landmark,
+        priority: "crowd",
+        hour: h,
+        distanceM: Math.round(best.distanceM),
+        etaMinutes: etaMinutes(best.distanceM),
+        path: labelEndpoints(best.coordinates, landmark.name),
+        turns: best.turns,
+        zonesUsed: best.zoneIds,
+      });
+    }
+
+    const primary = await fetchOsrmRoute(lat, lng, landmark.lat, landmark.lng);
+    if (!primary) return res.status(502).json({ error: "Routing service is unavailable right now." });
+    const { zoneIds } = crowdExposure(primary.coordinates, h);
+
+    res.json({
+      destination: landmark,
+      priority: "fastest",
+      hour: h,
+      distanceM: Math.round(primary.distanceM),
+      etaMinutes: etaMinutes(primary.distanceM),
+      path: labelEndpoints(primary.coordinates, landmark.name),
+      turns: primary.turns,
+      zonesUsed: zoneIds,
+    });
+  } catch (err) {
+    res.status(502).json({ error: "Routing service failed. Please try again." });
+  }
 });
 
 module.exports = router;
