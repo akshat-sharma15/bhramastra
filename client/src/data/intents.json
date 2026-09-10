@@ -11,7 +11,16 @@
   "nearestParking": { "keywords": ["parking", "पार्किंग", "car park", "gaadi kaha", "vehicle park"] },
   "nearestFood": { "keywords": ["food", "khana", "भोजन", "bhandara", "भंडारा", "eat", "prasad", "प्रसाद"] },
   "nearestMedical": {
-    "keywords": ["medical", "doctor", "hospital", "chikitsa", "चिकित्सा", "इलाज", "first aid", "ambulance", "dawai"]
+    "keywords": [
+      "medical", "doctor", "hospital", "chikitsa", "चिकित्सा", "इलाज", "first aid", "ambulance", "dawai", "दवाई",
+      "swasthya", "स्वास्थ्य", "swasth kendra", "स्वास्थ्य केंद्र", "health center", "health centre", "clinic",
+      "not well", "not feeling well", "feeling unwell", "unwell", "sick", "ill", "illness",
+      "bimar", "beemar", "बीमार", "tabiyat kharab", "तबीयत खराब", "tabiyat theek nahi",
+      "chot", "चोट", "chot lagi", "ghayal", "घायल", "injured", "injury", "hurt", "bleeding",
+      "pain", "दर्द", "dard", "fever", "बुखार", "bukhar", "faint", "dizzy", "unconscious",
+      "emergency", "आपातकाल", "need a doctor", "not good", "not ok", "not okay", "meri tabiyat", "mera dost bimar",
+      "friend is sick", "friend is not well", "dost bimar"
+    ]
   },
   "nearestToilet": { "keywords": ["toilet", "washroom", "शौचालय", "restroom", "shauchalay"] },
   "nearestAuto": { "keywords": ["auto", "rickshaw", "ऑटो", "taxi", "cab"] },

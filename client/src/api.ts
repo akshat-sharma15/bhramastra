@@ -70,4 +70,7 @@ export const api = {
   listMissing: () => get<MissingReport[]>("/lostfound/missing"),
   listFound: () => get<FoundReport[]>("/lostfound/found"),
   matches: () => get<MatchResult[]>("/lostfound/matches"),
+
+  chat: (message: string, history: { from: "user" | "bot"; text: string }[]) =>
+    post<{ intent: string; reply: string }>("/chat", { message, history }),
 };

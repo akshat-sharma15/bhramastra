@@ -133,9 +133,81 @@ export default function Chatbot({
     }
   };
 
+  const KNOWN_INTENT_KEYS = new Set(Object.keys(intents));
+
+  const runKnownIntent = async (intent: IntentName, text: string) => {
+    if (intent === "whereAmI") {
+      if (!userLocation) {
+        addBotMessage("Fetching your current GPS location...");
+        requestLocation();
+        return;
+      }
+      const geo = await api.reverseGeocode(userLocation.lat, userLocation.lng);
+      addBotMessage(`You are currently located near **${geo.displayName}** in Ujjain.`);
+      return;
+    }
+
+    if (intent in POI_INTENT_TYPE) {
+      await handlePoiIntent(POI_INTENT_TYPE[intent]!);
+      return;
+    }
+
+    if (intent === "distance" || intent === "lessCrowdedRoute") {
+      if (!userLocation) {
+        addBotMessage("Please allow location access so I can calculate the route from your exact spot.");
+        requestLocation();
+        return;
+      }
+      const destination = extractDestination(text, landmarks) || landmarks.find((l) => l.id === "mahakal")!;
+      if (intent === "lessCrowdedRoute") {
+        const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "crowd", hour);
+        onRoute(route);
+        addBotMessage(
+          `Plotted a **safe, less-crowded route** to **${destination.name}**.\n\n🚶 Distance: ${formatDistance(
+            route.distanceM
+          )} | ETA: ~${formatEta(route.etaMinutes)}.`
+        );
+      } else {
+        const d = await api.distanceTo(userLocation.lat, userLocation.lng, destination.id);
+        addBotMessage(
+          `**${destination.name}** is **${formatDistance(d.distanceM)}** away (approx. **${formatEta(
+            d.etaMinutes
+          )}** on foot).`,
+          {
+            label: `Show Route to ${destination.name}`,
+            run: async () => {
+              const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "fastest", hour);
+              onRoute(route);
+            },
+          }
+        );
+      }
+      return;
+    }
+
+    if (intent === "bestTime") {
+      const res = await api.bestTime();
+      const best = res.best
+        .slice()
+        .sort((a, b) => a.hour - b.hour)
+        .map((b) => `${b.hour % 12 === 0 ? 12 : b.hour % 12}${b.hour >= 12 ? "PM" : "AM"}`)
+        .join(", ");
+      addBotMessage(
+        `Least crowded hours for Darshan today are: **${best}**.\n\n⚠️ Tip: Avoid the 6:00 PM – 8:30 PM Sandhya Aarti surge if you prefer shorter queues.`
+      );
+      return;
+    }
+
+    if (intent === "greeting" || intent === "help") {
+      addBotMessage(WELCOME);
+      return;
+    }
+  };
+
   const handleSend = async (raw: string) => {
     const text = raw.trim();
     if (!text) return;
+    const history = messages.map((m) => ({ from: m.from, text: m.text }));
     setMessages((prev) => [
       ...prev,
       { id: idRef.current++, from: "user", text, timestamp: getCurrentTimeString() },
@@ -144,78 +216,29 @@ export default function Chatbot({
     setBusy(true);
 
     try {
-      const intent = classifyIntent(text);
+      const localIntent = classifyIntent(text);
 
-      if (intent === "whereAmI") {
-        if (!userLocation) {
-          addBotMessage("Fetching your current GPS location...");
-          requestLocation();
-          return;
-        }
-        const geo = await api.reverseGeocode(userLocation.lat, userLocation.lng);
-        addBotMessage(`You are currently located near **${geo.displayName}** in Ujjain.`);
+      if (localIntent !== ("fallback" as IntentName)) {
+        await runKnownIntent(localIntent, text);
         return;
       }
 
-      if (intent in POI_INTENT_TYPE) {
-        await handlePoiIntent(POI_INTENT_TYPE[intent]!);
-        return;
-      }
-
-      if (intent === "distance" || intent === "lessCrowdedRoute") {
-        if (!userLocation) {
-          addBotMessage("Please allow location access so I can calculate the route from your exact spot.");
-          requestLocation();
-          return;
-        }
-        const destination = extractDestination(text, landmarks) || landmarks.find((l) => l.id === "mahakal")!;
-        if (intent === "lessCrowdedRoute") {
-          const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "crowd", hour);
-          onRoute(route);
-          addBotMessage(
-            `Plotted a **safe, less-crowded route** to **${destination.name}**.\n\n🚶 Distance: ${formatDistance(
-              route.distanceM
-            )} | ETA: ~${formatEta(route.etaMinutes)}.`
-          );
+      // No local keyword match - ask the AI to classify + answer, but any
+      // health/location/route intent still resolves through our real POI/route data.
+      try {
+        const { intent: aiIntent, reply } = await api.chat(text, history);
+        if (aiIntent && aiIntent !== "general" && KNOWN_INTENT_KEYS.has(aiIntent)) {
+          await runKnownIntent(aiIntent as IntentName, text);
         } else {
-          const d = await api.distanceTo(userLocation.lat, userLocation.lng, destination.id);
-          addBotMessage(
-            `**${destination.name}** is **${formatDistance(d.distanceM)}** away (approx. **${formatEta(
-              d.etaMinutes
-            )}** on foot).`,
-            {
-              label: `Show Route to ${destination.name}`,
-              run: async () => {
-                const route = await api.route(userLocation.lat, userLocation.lng, destination.id, "fastest", hour);
-                onRoute(route);
-              },
-            }
-          );
+          addBotMessage(reply);
         }
-        return;
-      }
-
-      if (intent === "bestTime") {
-        const res = await api.bestTime();
-        const best = res.best
-          .slice()
-          .sort((a, b) => a.hour - b.hour)
-          .map((b) => `${b.hour % 12 === 0 ? 12 : b.hour % 12}${b.hour >= 12 ? "PM" : "AM"}`)
-          .join(", ");
+      } catch (err) {
         addBotMessage(
-          `Least crowded hours for Darshan today are: **${best}**.\n\n⚠️ Tip: Avoid the 6:00 PM – 8:30 PM Sandhya Aarti surge if you prefer shorter queues.`
+          err instanceof Error && err.message
+            ? err.message
+            : "I couldn't reach the AI service just now. Please try again in a moment."
         );
-        return;
       }
-
-      if (intent === "greeting" || intent === "help") {
-        addBotMessage(WELCOME);
-        return;
-      }
-
-      addBotMessage(
-        "I didn't quite catch that. Try asking:\n- *\"Where am I?\"*\n- *\"Nearest medical first aid\"*\n- *\"Safe route to Mahakal\"*\n- *\"Find parking\"*"
-      );
     } catch {
       addBotMessage("An error occurred while connecting to the guide service. Please try again.");
     } finally {

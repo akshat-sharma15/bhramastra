@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -6,6 +8,7 @@ const crowdRouter = require("./routes/crowd");
 const routeRouter = require("./routes/route");
 const geocodeRouter = require("./routes/geocode");
 const lostfoundRouter = require("./routes/lostfound");
+const chatRouter = require("./routes/chat");
 const landmarks = require("./data/landmarks.json");
 
 const app = express();
@@ -22,6 +25,7 @@ app.use("/api/crowd", crowdRouter);
 app.use("/api/route", routeRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/lostfound", lostfoundRouter);
+app.use("/api/chat", chatRouter);
 
 app.listen(PORT, () => {
   console.log(`Bhramastra server running on http://localhost:${PORT}`);

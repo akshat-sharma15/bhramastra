@@ -17,6 +17,7 @@ import {
   Menu,
 } from "lucide-react";
 import MapView, { LayerState } from "./components/MapView";
+import BhramastraLogo from "./components/BhramastraLogo";
 import LayerToggle from "./components/LayerToggle";
 import TimeSlider from "./components/TimeSlider";
 import RouteFinder from "./components/RouteFinder";
@@ -63,6 +64,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [sosModalOpen, setSosModalOpen] = useState(false);
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const watchIdRef = useRef<number | null>(null);
@@ -181,8 +183,8 @@ export default function App() {
       <header className="h-16 shrink-0 flex items-center justify-between px-4 sm:px-6 bg-slate-900/95 backdrop-blur-md text-white border-b border-slate-800/90 z-30 shadow-md">
         {/* Brand Logo & Tag */}
         <div className="flex items-center gap-3 min-w-[200px]">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-lg shadow-md font-bold text-white shrink-0">
-            🕉️
+          <div className="w-9 h-9 flex items-center justify-center shrink-0">
+            <BhramastraLogo className="w-9 h-9 bhramastra-glow-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -344,6 +346,23 @@ export default function App() {
                       </div>
                     )}
                   </div>
+
+                  {/* Sidebar Footer: Bhramastra Emblem */}
+                  <button
+                    onClick={() => setComingSoonOpen(true)}
+                    className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-t border-slate-100 bg-slate-50/70 hover:bg-amber-50/70 transition-colors group"
+                    title="Bhramastra"
+                  >
+                    <div className="bhramastra-float">
+                      <BhramastraLogo className="w-8 h-8 bhramastra-glow-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-extrabold text-slate-800 group-hover:text-amber-700 leading-none">
+                        Bhramastra
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Divine feature &bull; Coming soon</p>
+                    </div>
+                  </button>
                 </motion.aside>
               )}
             </AnimatePresence>
@@ -654,6 +673,44 @@ export default function App() {
               <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
                 <strong>Tip:</strong> If separated from family, head to the nearest <em>Police Sahayata Kendra (Pillars 1–24)</em>.
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bhramastra "Coming Soon" Page */}
+      <AnimatePresence>
+        {comingSoonOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[750] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <div className="absolute inset-0" onClick={() => setComingSoonOpen(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="relative z-10 flex flex-col items-center gap-5 text-center max-w-sm"
+            >
+              <button
+                onClick={() => setComingSoonOpen(false)}
+                className="absolute -top-12 right-0 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="bhramastra-float">
+                <BhramastraLogo className="w-28 h-28 bhramastra-glow-pulse" />
+              </div>
+
+              <h2 className="text-2xl font-black text-white tracking-tight">Bhramastra</h2>
+              <p className="text-amber-300 font-extrabold text-lg tracking-wide">Coming Soon</p>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                This divine feature is being forged for Simhasth 2028. Stay tuned for its arrival.
+              </p>
             </motion.div>
           </motion.div>
         )}

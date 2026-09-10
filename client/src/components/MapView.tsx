@@ -358,8 +358,8 @@ export default function MapView({
         )}
       </MapContainer>
 
-      {/* Floating Map Corner Controls */}
-      <div className="absolute bottom-6 right-4 z-[400] flex flex-col gap-2">
+      {/* Floating Map Corner Controls (Bottom Left, above legend - clear of the AI Copilot FAB) */}
+      <div className="absolute bottom-20 left-4 z-[400] flex flex-col gap-2">
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
@@ -375,8 +375,8 @@ export default function MapView({
           whileTap={{ scale: 0.92 }}
           onClick={handleResetSimhasth}
           className="w-10 h-10 rounded-2xl bg-white shadow-lg border border-slate-200/90 flex items-center justify-center text-slate-700 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
-          title="View Full Simhasth Mela Area"
-          aria-label="View Full Simhasth Mela Area"
+          title="Back to Ujjain Simhasth Area"
+          aria-label="Back to Ujjain Simhasth Area"
         >
           <Compass className="w-4 h-4 text-amber-600" />
         </motion.button>
